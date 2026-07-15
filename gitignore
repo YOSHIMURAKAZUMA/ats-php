@@ -1,0 +1,29 @@
+# Laravel
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/bootstrap/ssr
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+
+# エディタ・OS
+.DS_Store
+.idea
+.nova
+.zed
+.fleet
+# .vscode/ は個人設定のみ除外し、チーム共有設定(拡張機能推奨リストなど)は
+# 個別ファイル単位でignore対象から外してもよい(設計書「Git運用ルール」参照)
+.vscode/*
+!.vscode/extensions.json
