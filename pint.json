@@ -1,0 +1,4 @@
+{
+    "_comment": "JSONは本来コメント不可のため、Pintが読まない_commentキーで覚え書きを残す。presetはLaravel標準のコードスタイルを指定",
+    "preset": "laravel"
+}
