@@ -3,10 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole as UserRoleEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -27,6 +29,35 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    public function roles(): HasMany
+    {
+        return $this->hasMany(UserRole::class);
+    }
+
+    public function hasRole(UserRoleEnum $role): bool
+    {
+        return $this->roles->contains(fn ($r) => $r->role === $role);
+    }
+
+    public function hasAnyRole(array $roles): bool
+    {
+        return $this->roles->contains(fn ($r) => in_array($r->role, $roles, true));
+    }
+
+    public function primaryRole(): ?UserRoleEnum
+    {
+        $owned = $this->roles->pluck('role');
+
+        foreach (UserRoleEnum::priorityOrder() as $role) {
+            if ($owned->contains($role)) {
+                return $role;
+            }
+        }
+
+        return null;
     }
 }
