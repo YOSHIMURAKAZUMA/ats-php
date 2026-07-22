@@ -26,4 +26,14 @@ enum UserRole: int
             default => throw new \InvalidArgumentException("Unknown role name: {$name}"),
         };
     }
+
+    /**
+     * ログイン後の初期画面振り分けの優先順(REQ-019)
+     *
+     * @return array<self>
+     */
+    public static function priorityOrder(): array
+    {
+        return [self::Admin, self::Recruiter, self::Interviewer];
+    }
 }
