@@ -60,4 +60,9 @@ class User extends Authenticatable
 
         return null;
     }
+
+    public function jobPostings(): HasMany
+    {
+        return $this->hasMany(jobPosting::class, 'created_by');
+    }
 }
