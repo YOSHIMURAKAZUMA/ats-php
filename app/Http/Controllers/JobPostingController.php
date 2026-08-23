@@ -70,7 +70,7 @@ class JobPostingController extends Controller
         $this->service->update($jobPosting, $request->validated());
 
         return redirect()
-            ->route('job-posting.index')
+            ->route('job-postings.index')
             ->with('status', '求人票を更新しました。');
     }
 
