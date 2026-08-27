@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\JobPostingController;
+use App\Http\Controllers\PublicJobController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -27,6 +28,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/candidacies', fn () => '応募者一覧画面(仮)')->middleware('role:interviewer,recruiter,admin');
 });
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PublicJobController::class, 'index'])->name('public.jobs.index');
+Route::get('/jobs/{id}', [PublicJobController::class, 'show'])->name('public.jobs.show');
