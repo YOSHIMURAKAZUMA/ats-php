@@ -54,4 +54,20 @@ class JobPostingRepository
 
         return $jobPosting;
     }
+
+    /**
+     * 公開中の求人票のみを取得(SCR-09 / REQ-015)。新しい順。
+     */
+    public function getPublished(): Collection
+    {
+        return JobPosting::where('status', JobPostingStatus::Published)->latest()->get();
+    }
+
+    /**
+     * 公開中の求人票を1件取得。非公開(下書き・募集終了)なら null(SCR-10 / REQ-016)。
+     */
+    public function findPublished(int $id): ?JobPosting
+    {
+        return JobPosting::where('status', JobPostingStatus::Published)->find($id);
+    }
 }
