@@ -6,6 +6,7 @@ use App\Enums\JobPostingStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JobPosting extends Model
 {
@@ -23,5 +24,10 @@ class JobPosting extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function candidacies(): HasMany
+    {
+        return $this->hasMany(Candidacy::class);
     }
 }
