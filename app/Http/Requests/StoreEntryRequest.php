@@ -37,6 +37,7 @@ class StoreEntryRequest extends FormRequest
             'name.required' => '氏名は必須です',
             'name.max' => '氏名は100文字以内で入力してください',
             'email.required' => 'メールアドレスは必須です',
+            'email.email' => '有効なメールアドレスを入力してください',
             'email.max' => 'メールアドレスは255文字以内で入力してください',
             'phone.regex' => '電話番号は数字とハイフンのみで入力してください',
             'phone.max' => '電話番号は20文字以内で入力してください',

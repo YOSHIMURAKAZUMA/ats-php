@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\EntryController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\PublicJobController;
 use Illuminate\Support\Facades\Route;
@@ -28,5 +29,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/candidacies', fn () => '応募者一覧画面(仮)')->middleware('role:interviewer,recruiter,admin');
 });
 
+// 公開ページ(未ログインの応募者向け)REQ-015, 016, 004 - authの外
 Route::get('/', [PublicJobController::class, 'index'])->name('public.jobs.index');
 Route::get('/jobs/{id}', [PublicJobController::class, 'show'])->name('public.jobs.show');
+
+// 応募エントリー(REQ-004)
+Route::get('/jobs/{id}/entry', [EntryController::class, 'create'])->name('public.entries.create');
+Route::post('/jobs/{id}/entries', [EntryController::class, 'store'])->name('public.entries.store');
+Route::get('/jobs/{id}/complete', [EntryController::class, 'complete'])->name('public.entries.complete');

@@ -11,8 +11,7 @@
   <hr>
 
   <p>
-    {{-- 応募フォーム(SCR-03)はタスク10で実装予定のため、現時点では無効表示 --}}
-    <button type="button" disabled>この求人に応募する(準備中)</button>
+    <a href="{{ route('public.entries.create', $jobPosting->id) }}">この求人に応募する</a>
     <a href="{{ route('public.jobs.index') }}">一覧に戻る</a>
   </p>
 @endsection
