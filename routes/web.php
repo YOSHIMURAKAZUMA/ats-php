@@ -37,3 +37,8 @@ Route::get('/jobs/{id}', [PublicJobController::class, 'show'])->name('public.job
 Route::get('/jobs/{id}/entry', [EntryController::class, 'create'])->name('public.entries.create');
 Route::post('/jobs/{id}/entries', [EntryController::class, 'store'])->name('public.entries.store');
 Route::get('/jobs/{id}/complete', [EntryController::class, 'complete'])->name('public.entries.complete');
+
+// タスク11(Vue3学習)用の一時ページ。ローカル環境限定。タスク12着手時に削除する
+if (app()->environment('local')) {
+    Route::view('/dev/vue-lab', 'dev.vue-lab');
+}
