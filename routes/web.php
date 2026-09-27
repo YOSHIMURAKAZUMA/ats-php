@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\EntryController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\PublicJobController;
@@ -26,7 +27,16 @@ Route::middleware('auth')->group(function () {
 
     // 他ロールの仮ルート(タスク9では触れない)
     Route::get('/users', fn () => 'ユーザー管理画面(仮)')->middleware('role:admin');
-    Route::get('/candidacies', fn () => '応募者一覧画面(仮)')->middleware('role:interviewer,recruiter,admin');
+
+    Route::get('/candidacies', [CandidacyController::class, 'index'])->name('candidacies.index')->middleware('role:interviewer,recruiter,admin');
+
+    Route::get('/candidacies/{id}', [CandidacyController::class, 'show'])->name('candidacies.show')->middleware('role:interviewer,recruiter,admin');
+
+    Route::patch('/candidacies/{id}/status', [CandidacyController::class, 'updateStatus'])->name('candidacies.update-status')->middleware('role:recruiter,admin');
+
+    Route::put('/candidacies/{id}/interviewers', [CandidacyController::class, 'manageInterviewers'])->name('candidacies.interviewers')->middleware('role:recruiter,admin');
+
+    Route::get('/candidacies/{id}/resume', [CandidacyController::class, 'resume'])->name('candidacies.resume')->middleware('role:interviewer,recruiter,admin');
 });
 
 // 公開ページ(未ログインの応募者向け)REQ-015, 016, 004 - authの外
@@ -37,8 +47,3 @@ Route::get('/jobs/{id}', [PublicJobController::class, 'show'])->name('public.job
 Route::get('/jobs/{id}/entry', [EntryController::class, 'create'])->name('public.entries.create');
 Route::post('/jobs/{id}/entries', [EntryController::class, 'store'])->name('public.entries.store');
 Route::get('/jobs/{id}/complete', [EntryController::class, 'complete'])->name('public.entries.complete');
-
-// タスク11(Vue3学習)用の一時ページ。ローカル環境限定。タスク12着手時に削除する
-if (app()->environment('local')) {
-    Route::view('/dev/vue-lab', 'dev.vue-lab');
-}
