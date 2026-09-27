@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -63,6 +64,13 @@ class User extends Authenticatable
 
     public function jobPostings(): HasMany
     {
-        return $this->hasMany(jobPosting::class, 'created_by');
+        return $this->hasMany(JobPosting::class, 'created_by');
+    }
+
+    // 面接官としてアサインされた選考(candidacy_interviewers 経由)。
+    // Candidacy::interviewers() の逆方向
+    public function assignedCandidacies(): BelongsToMany
+    {
+        return $this->belongsToMany(Candidacy::class, 'candidacy_interviewers', 'interviewer_id', 'candidacy_id')->withPivot(['round', 'assigned_at']);
     }
 }
