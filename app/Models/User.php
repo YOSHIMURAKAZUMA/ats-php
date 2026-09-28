@@ -73,4 +73,10 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Candidacy::class, 'candidacy_interviewers', 'interviewer_id', 'candidacy_id')->withPivot(['round', 'assigned_at']);
     }
+
+    // 面接官として入力した面接評価
+    public function evaluations(): HasMany
+    {
+        return $this->hasMany(InterviewEvaluation::class, 'interviewer_id');
+    }
 }

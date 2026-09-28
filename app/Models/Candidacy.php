@@ -52,4 +52,14 @@ class Candidacy extends Model
     {
         return $this->hasMany(Notification::class);
     }
+
+    /**
+     * この選考に対する面接評価(ラウンド順→登録順)
+     */
+    public function evaluations(): HasMany
+    {
+        return $this->hasMany(InterviewEvaluation::class)
+            ->orderBy('round')
+            ->orderBy('created_at');
+    }
 }
