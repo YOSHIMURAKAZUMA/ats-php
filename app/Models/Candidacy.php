@@ -53,13 +53,19 @@ class Candidacy extends Model
         return $this->hasMany(Notification::class);
     }
 
-    /**
-     * この選考に対する面接評価(ラウンド順→登録順)
-     */
+    // この選考に対する面接評価(ラウンド順→登録順)
     public function evaluations(): HasMany
     {
         return $this->hasMany(InterviewEvaluation::class)
             ->orderBy('round')
             ->orderBy('created_at');
+    }
+
+    // 指定ユーザーが指定ラウンドの面接官としてアサインされているか
+    public function hasInterviewer(int $userId, int $round): bool
+    {
+        return $this->interviewers->contains(
+            fn (User $interviewer) => $interviewer->id === $userId && $interviewer->pivot->round === $round
+        );
     }
 }

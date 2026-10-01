@@ -15,13 +15,10 @@ class InterviewEvaluation extends Model
         'comment',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'round' => 'integer',
-            'score' => 'integer',
-        ];
-    }
+    protected $casts = [
+        'round' => 'integer',
+        'score' => 'integer',
+    ];
 
     public function candidacy(): BelongsTo
     {
