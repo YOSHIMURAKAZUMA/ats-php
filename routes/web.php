@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CandidacyController;
 use App\Http\Controllers\EntryController;
+use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\PublicJobController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/candidacies/{id}/interviewers', [CandidacyController::class, 'manageInterviewers'])->name('candidacies.interviewers')->middleware('role:recruiter,admin');
 
     Route::get('/candidacies/{id}/resume', [CandidacyController::class, 'resume'])->name('candidacies.resume')->middleware('role:interviewer,recruiter,admin');
+
+    // 面接評価(面接官のみ)REQ-009, 010
+    Route::get('/candidacies/{id}/evaluation', [EvaluationController::class, 'create'])->name('candidacies.evaluations.create')->middleware('role:interviewer');
+
+    Route::post('/candidacies/{id}/evaluations', [EvaluationController::class, 'store'])->name('candidacies.evaluations.store')->middleware('role:interviewer');
 });
 
 // 公開ページ(未ログインの応募者向け)REQ-015, 016, 004 - authの外
