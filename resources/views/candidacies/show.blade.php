@@ -3,10 +3,6 @@
 @section('content')
   <h1>応募者詳細</h1>
 
-  @if (session('status'))
-    <p>{{ session('status') }}</p>
-  @endif
-
   <p><a href="{{ route('candidacies.index') }}">←  応募者一覧に戻る</a></p>
 
   <!-- 応募者情報 -->
@@ -37,6 +33,11 @@
       <td>{{ $candidacy->status->label() }}</td>
     </tr>
   </table>
+
+  <!-- 面接評価の入力(REQ-009)。現在のラウンドを担当する面接官のみ表示 -->
+  @can('evaluate', $candidacy)
+    <p><a href="{{ route('candidacies.evaluations.create', $candidacy->id) }}">面接評価を入力する</a></p>
+  @endcan
 
   <!-- ステータス変更(REQ-006/011) -->
   @can('updateStatus', $candidacy)
@@ -285,5 +286,69 @@
         @endforeach
       </tbody>
     </table>
+  @endif
+
+  <!-- 登録済みの面接評価(REQ-010) -->
+  <h2>登録済みの面接評価(選択すると所感を表示)</h2>
+  @if (empty($evaluations))
+    <p>登録済みの面接評価はありません</p>
+  @else
+    <table>
+      <thead>
+        <tr>
+          <th>評価者</th>
+          <th>ラウンド</th>
+          <th>スコア</th>
+          <th>登録日時</th>
+          <th>所感</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach ($evaluations as $evaluation)
+          <tr>
+            <td>{{ $evaluation['interviewerName'] }}</td>
+            <td>{{ $evaluation['roundLabel'] }}</td>
+            <td>{{ $evaluation['score'] }}</td>
+            <td>{{ $evaluation['createdAt'] }}</td>
+            <td><button type="button" data-evaluation-id="{{ $evaluation['id'] }}">表示</button></td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+
+    <h3 id="comment-title">所感コメント</h3>
+    <p>※同ラウンド他者の所感は、自分の評価提出後に表示されます</p>
+    <p id="comment-body" style="white-space: pre-wrap">一覧の「表示」を押すと、所感コメントがここに表示されます。</p>
+
+    <script>
+      (function () {
+        //サーバー側で閲覧可否を判定済み(閲覧できない所感は comment が null)
+        const evaluations = @json($evaluations);
+
+        const titleEl = document.getElementById('comment-title');
+        const bodyEl = document.getElementById('comment-body');
+
+        const showComment = (id) => {
+          const evaluation = evaluations.find((e) => e.id === id);
+          if (!evaluation) {
+            return;
+          }
+
+          titleEl.textContent = `所感コメント(選択中: ${evaluation.interviewerName} / ${evaluation.roundLabel})`;
+
+          if (!evaluation.canViewComment) {
+            bodyEl.textContent = 'あなたの評価提出後に表示されます。';
+          } else if (evaluation.comment === null) {
+            bodyEl.textContent = '(所感の入力はありません)';
+          } else {
+            bodyEl.textContent = evaluation.comment;
+          }
+        };
+
+        document.querySelectorAll('[data-evaluation-id]').forEach((button) => {
+          button.addEventListener('click', () => showComment(Number(button.dataset.evaluationId)));
+        });
+      })();
+    </script>
   @endif
 @endsection
