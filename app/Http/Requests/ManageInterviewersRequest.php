@@ -31,7 +31,7 @@ class ManageInterviewersRequest extends FormRequest
         return [
             'round' => ['required', 'integer', Rule::in(CandidacyStatus::interviewRounds())],
             'interviewer_ids' => ['required', 'array', 'min:1'],
-            'interviewer_ids.*' => ['required', 'distinct', 'exists:users,id'],
+            'interviewer_ids.*' => ['integer', 'distinct', 'exists:users,id'],
         ];
     }
 
@@ -40,7 +40,7 @@ class ManageInterviewersRequest extends FormRequest
         return [
             'round.required' => '対象の面接を指定してください',
             'round.in' => '対象の面接の指定が正しくありません',
-            'interviewer_ids.required' => '面接官を1名以上選択してくださいc',
+            'interviewer_ids.required' => '面接官を1名以上選択してください',
             'interviewer_ids.array' => '面接官の指定形式が正しくありません',
             'interviewer_ids.min' => '面接官を1名以上選択してください',
             'interviewer_ids.*.integer' => '面接官の指定が正しくありません',

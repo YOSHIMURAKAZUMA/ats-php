@@ -145,6 +145,9 @@
       @error('interviewer_ids')
         <p>{{ $message }}</p>
       @enderror
+      @error('interviewer_ids.*')
+        <p>{{ $message }}</p>
+      @enderror
       @error('round')
         <p>{{ $message }}</p>
       @enderror
