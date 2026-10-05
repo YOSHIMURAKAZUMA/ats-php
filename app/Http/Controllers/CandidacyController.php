@@ -11,6 +11,7 @@ use App\Models\JobPosting;
 use App\Models\User;
 use App\Repositories\CandidacyRepository;
 use App\Services\CandidacyService;
+use App\Services\EvaluationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -23,6 +24,7 @@ class CandidacyController extends Controller
     public function __construct(
         private readonly CandidacyService $service,
         private readonly CandidacyRepository $repository,
+        private readonly EvaluationService $evaluationService,
     ) {}
 
     /**
@@ -71,11 +73,11 @@ class CandidacyController extends Controller
     }
 
     /**
-     * SCR-05 応募者詳細(REQ-006)。
+     * SCR-05 応募者詳細(REQ-006/010)。
      * 面接官は自分の担当分のみ閲覧可(CandidacyPolicy@view で制御)。
      * 存在しない選考は404。
      */
-    public function show(int $id): View
+    public function show(Request $request, int $id): View
     {
         $candidacy = $this->repository->findWithDetail($id);
 
@@ -114,12 +116,31 @@ class CandidacyController extends Controller
                 ->all();
         }
 
+        // 面接評価一覧(REQ-010)。所感コメントは閲覧可能な場合のみ渡す(ブラインド評価)
+        $user = $request->user();
+        $evaluations = $this->evaluationService->getForDisplay($candidacy)
+            ->map(function ($e) use ($user) {
+                $canViewComment = $user->can('viewComment', $e);
+
+                return [
+                    'id' => $e->id,
+                    'interviewerName' => $e->interviewer->name,
+                    'roundLabel' => CandidacyStatus::from($e->round)->label(),
+                    'score' => $e->score,
+                    'createdAt' => $e->created_at->format('Y-m-d H:i'),
+                    'canViewComment' => $canViewComment,
+                    'comment' => $canViewComment ? $e->comment : null,
+                ];
+            })
+            ->all();
+
         return view('candidacies.show', compact(
             'candidacy',
             'allowedStatuses',
             'currentRound',
             'assignedInterviewers',
             'interviewerCandidates',
+            'evaluations',
         ));
     }
 

@@ -6,6 +6,7 @@ use App\Enums\CandidacyStatus;
 use App\Models\Candidacy;
 use App\Models\CandidacyStatusHistory;
 use App\Models\Candidate;
+use App\Models\InterviewEvaluation;
 use App\Models\JobPosting;
 use App\Models\User;
 use Carbon\Carbon;
@@ -58,6 +59,8 @@ class CandidacySeeder extends Seeder
             ['name' => '加藤 亮', 'email' => 'kato@example.com', 'phone' => '090-1111-0009', 'job' => $backend, 'status' => CandidacyStatus::Rejected, 'interviewers' => [1 => [$interviewer]]],
         ];
 
+        $candidaies = []; // 候補者メールアドレス => 選考(面接評価の作成で使う)
+
         foreach ($entries as $index => $data) {
             // エントリー日を少しずつずらす(新しい順の並びを確認できるように)
             $entryDate = now()->subDays(30 - $index * 2);
@@ -91,9 +94,14 @@ class CandidacySeeder extends Seeder
             }
             // 現在ステータスに至るまでのステータス変更履歴
             $this->createHistories($candidacy, $data['status'], $recruiter->id, $entryDate);
+
+            $candidaies[$data['email']] = $candidacy;
         }
 
         $this->command->info('選考データを '.count($entries).'件作成しました。');
+
+        // 面接評価(REQ-009/010の表示確認用)
+        $this->createEvaluations($candidaies, $interviewer, $both);
     }
 
     /**
@@ -149,6 +157,45 @@ class CandidacySeeder extends Seeder
                 'changed_at' => $entryDate->copy()->addDays(2 + $step * 3),
             ]);
         }
+    }
+
+    /**
+     * 面接評価を作成する(REQ-009/010の表示確認用)。
+     * ブラインド評価を確認できるよう、同じラウンドに「提出済み」と「未提出」の面接官が混在する選考を含める。
+     * 評価日時は、エントリー日から「1 + ラウンド × 3」日後とする
+     * （面接ステータスへの変更後~次のステータス変更前に収まる）。
+     *
+     * @param array<string, Candidacy> scandidacies 候補者メールアドレスをキーとした選考
+     */
+    private function createEvaluations(array $candidacies, User $interviewer, User $both): void
+    {
+        $evaluations = [
+            // 鈴木 一郎(一次面接中):both のみ提出済み。interviewer で開くとブラインド状態を確認できる
+            ['email' => 'suzuki@example.com', 'interviewer' => $both, 'round' => 1, 'score' => 4, 'comment' => '受け答えが落ち着いており、基礎的な技術力も十分。チームでの協調性は二次面接で確認したい。'],
+            // 伊藤 五郎(内定):一次・二次とも評価済み。所感無し・改行ありの表示を確認できる
+            ['email' => 'ito@example.com', 'interviewer' => $interviewer, 'round' => 1, 'score' => 4, 'comment' => null],
+            ['email' => 'ito@example.com', 'interviewer' => $both, 'round' => 2, 'score' => 5, 'comment' => '設計の考え方を具体例で説明できていた。\nリーダー経験もあり、即戦力として期待できる。'],
+            // 加藤 亮(不合格):一次面接で不合格
+            ['email' => 'kato@example.com', 'interviewer' => $interviewer, 'round' => 1, 'score' => 2, 'comment' => '募集要件の実務経験が不足している。'],
+        ];
+
+        foreach ($evaluations as $data) {
+            $candidacy = $candidacies[$data['email']];
+            $evaluatedAt = $candidacy->created_at->copy()->addDays(1 + $data['round'] * 3);
+
+            $evaluation = new InterviewEvaluation([
+                'candidacy_id' => $candidacy->id,
+                'interviewer_id' => $data['interviewer']->id,
+                'round' => $data['round'],
+                'score' => $data['score'],
+                'comment' => $data['comment'],
+            ]);
+            $evaluation->created_at = $evaluatedAt;
+            $evaluation->updated_at = $evaluatedAt;
+            $evaluation->save();
+        }
+
+        $this->command->info('面接評価を '.count($evaluations).'件作成しました。');
     }
 
     /**

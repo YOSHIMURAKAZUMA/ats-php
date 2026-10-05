@@ -43,9 +43,8 @@ class CandidacyPolicy
 
         // 面接官は、その選考にアサインされている場合のみ閲覧可
         if ($user->hasRole(UserRole::Interviewer)) {
-            return $candidacy->interviewers()
-                ->where('users.id', $user->id)
-                ->exists();
+            return $candidacy->interviewers
+                ->contains('id', $user->id);
         }
 
         return false;
@@ -67,5 +66,18 @@ class CandidacyPolicy
     public function manageInterviewers(User $user, Candidacy $candidacy): bool
     {
         return $this->canManage($user);
+    }
+
+    /**
+     * 面接評価の入力(SCR-06の表示・保存)
+     * 面接官ロールを持ち、現在の選考ラウンドにアサインされている場合のみ可
+     */
+    public function evaluate(User $user, Candidacy $candidacy): bool
+    {
+        $round = $candidacy->status->round();
+
+        return $round !== null
+            && $user->hasRole(UserRole::Interviewer)
+            && $candidacy->hasInterviewer($user->id, $round);
     }
 }
