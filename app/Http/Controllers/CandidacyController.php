@@ -55,7 +55,6 @@ class CandidacyController extends Controller
                 'email' => $c->candidate->email,
                 'status' => $c->status->value,
                 'statusLabel' => $c->status->label(),
-                'jobPostingId' => $c->job_positng_id,
                 'jobPostingTitle' => $c->jobPosting->title,
                 'entryDate' => $c->created_at->format('Y-m-d'),
                 'showUrl' => route('candidacies.show', $c->id),
