@@ -3,11 +3,14 @@
 namespace Database\Seeders;
 
 use App\Enums\CandidacyStatus;
+use App\Enums\NotificationSendStatus;
+use App\Enums\NotificationType;
 use App\Models\Candidacy;
 use App\Models\CandidacyStatusHistory;
 use App\Models\Candidate;
 use App\Models\InterviewEvaluation;
 use App\Models\JobPosting;
+use App\Models\Notification;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -59,7 +62,7 @@ class CandidacySeeder extends Seeder
             ['name' => '加藤 亮', 'email' => 'kato@example.com', 'phone' => '090-1111-0009', 'job' => $backend, 'status' => CandidacyStatus::Rejected, 'interviewers' => [1 => [$interviewer]]],
         ];
 
-        $candidaies = []; // 候補者メールアドレス => 選考(面接評価の作成で使う)
+        $candidacies = []; // 候補者メールアドレス => 選考(面接評価の作成で使う)
 
         foreach ($entries as $index => $data) {
             // エントリー日を少しずつずらす(新しい順の並びを確認できるように)
@@ -92,26 +95,32 @@ class CandidacySeeder extends Seeder
                     ]);
                 }
             }
-            // 現在ステータスに至るまでのステータス変更履歴
-            $this->createHistories($candidacy, $data['status'], $recruiter->id, $entryDate);
+            // 現在ステータスに至るまでのステータス変更履歴(と、それぞれの通知)
+            $this->createHistories($candidacy, $data['status'], $recruiter, $entryDate);
 
-            $candidaies[$data['email']] = $candidacy;
+            $candidacies[$data['email']] = $candidacy;
         }
 
         $this->command->info('選考データを '.count($entries).'件作成しました。');
 
+        // 田中 花子(二次面接中)の最新の変更を「送信失敗」にする(SCR-05の通知列の表示確認用)
+        $this->markLatestNotificationFailed($candidacies['tanaka@example.com']);
+
+        $this->command->info('通知を '.Notification::count().'件作成しました。');
+
         // 面接評価(REQ-009/010の表示確認用)
-        $this->createEvaluations($candidaies, $interviewer, $both);
+        $this->createEvaluations($candidacies, $interviewer, $both);
     }
 
     /**
      * 現在のステータスに至るまでの遷移経路を、状態遷移定義に沿って履歴として作成する。
      * 例)内定(11)なら 0->1, 1->2, 2->11 の3件を作る。
+     * 各履歴には、実際の運用と同じく通知レコードを1件ずつ作成する。
      */
     private function createHistories(
         Candidacy $candidacy,
         CandidacyStatus $current,
-        int $changedBy,
+        User $changedBy,
         Carbon $entryDate,
     ): void {
         // 現在ステータスごとの遷移経路(from→to の連なり)
@@ -148,15 +157,49 @@ class CandidacySeeder extends Seeder
         ];
 
         foreach ($paths[$current->value] as $step => [$from, $to]) {
-            CandidacyStatusHistory::create([
+            $history = CandidacyStatusHistory::create([
                 'candidacy_id' => $candidacy->id,
                 'from_status' => $from,
                 'to_status' => $to,
-                'changed_by' => $changedBy,
+                'changed_by' => $changedBy->id,
                 // エントリー日の２日後から、1ステップごとに３日ずつ進める
                 'changed_at' => $entryDate->copy()->addDays(2 + $step * 3),
             ]);
+
+            $this->createNotification($history, $changedBy->email);
         }
+    }
+
+    /**
+     * ステータス変更履歴に対応する通知レコードを作成する(REQ-011の表示確認用)。
+     * 不合格への変更は担当者が個別に連絡する想定で「送信なし」、それ以外は「送信済み」とする。
+     */
+    private function createNotification(CandidacyStatusHistory $history, string $ccEmail): void
+    {
+        $skipped = $history->to_status === CandidacyStatus::Rejected;
+
+        Notification::create([
+            'candidacy_id' => $history->candidacy_id,
+            'candidacy_status_history_id' => $history->id,
+            'type' => NotificationType::StatusChanged,
+            'cc_email' => $skipped ? null : $ccEmail,
+            'send_status' => $skipped ? NotificationSendStatus::Skipped : NotificationSendStatus::Sent,
+            'sent_at' => $skipped ? null : $history->changed_at,
+            'created_at' => $history->changed_at,
+        ]);
+    }
+
+    /**
+     * 指定した選考の、最新のステータス変更の通知を「送信失敗」にする(送信失敗の表示確認用)。
+     */
+    private function markLatestNotificationFailed(Candidacy $candidacy): void
+    {
+        $latestHistory = $candidacy->statusHistories()->first();
+
+        $latestHistory->notification->update([
+            'send_status' => NotificationSendStatus::Failed,
+            'sent_at' => null,
+        ]);
     }
 
     /**

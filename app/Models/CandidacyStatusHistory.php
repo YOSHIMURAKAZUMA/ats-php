@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CandidacyStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class CandidacyStatusHistory extends Model
 {
@@ -33,5 +34,11 @@ class CandidacyStatusHistory extends Model
     public function changedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    // このステータス変更に対する通知(送信しない選択時も skipped として1件記録される)
+    public function notification(): HasOne
+    {
+        return $this->hasOne(Notification::class);
     }
 }

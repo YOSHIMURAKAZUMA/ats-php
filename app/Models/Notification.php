@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NotificationSendStatus;
 use App\Enums\NotificationType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ class Notification extends Model
 
     protected $fillable = [
         'candidacy_id',
+        'candidacy_status_history_id',
         'type',
         'cc_email',
         'send_status',
@@ -23,6 +25,7 @@ class Notification extends Model
 
     protected $casts = [
         'type' => NotificationType::class,
+        'send_status' => NotificationSendStatus::class,
         'sent_at' => 'datetime',
         'created_at' => 'datetime',
     ];
@@ -30,5 +33,11 @@ class Notification extends Model
     public function candidacy(): BelongsTo
     {
         return $this->belongsTo(Candidacy::class);
+    }
+
+    // この通知の対象となったステータス変更(変更前後のステータス・変更者を辿る)
+    public function statusHistory(): BelongsTo
+    {
+        return $this->belongsTo(CandidacyStatusHistory::class, 'candidacy_status_history_id');
     }
 }

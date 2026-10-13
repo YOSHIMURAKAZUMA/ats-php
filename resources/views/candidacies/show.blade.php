@@ -272,10 +272,11 @@
     <table>
       <thead>
         <tr>
-          <th>変更履歴</th>
+          <th>変更日時</th>
           <th>変更前</th>
           <th>変更後</th>
           <th>変更者</th>
+          <th>通知</th>
         </tr>
       </thead>
       <tbody>
@@ -285,6 +286,15 @@
             <td>{{ $history->from_status?->label() ?? '-' }}</td>
             <td>{{ $history->to_status->label() }}</td>
             <td>{{ $history->changedBy->name }}</td>
+            <td>
+              @if ($history->notification === null)
+                -
+              @elseif ($history->notification->send_status === App\Enums\NotificationSendStatus::Failed)
+                <strong>{{ $history->notification->send_status->label() }}</strong>
+              @else
+                {{ $history->notification->send_status->label() }}
+              @endif
+            </td>
           </tr>
         @endforeach
       </tbody>

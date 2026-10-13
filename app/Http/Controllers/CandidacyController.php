@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CandidacyStatus;
+use App\Enums\NotificationSendStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\ManageInterviewersRequest;
 use App\Http\Requests\UpdateCandidacyStatusRequest;
@@ -144,10 +145,10 @@ class CandidacyController extends Controller
     }
 
     /**
-     * 選考ステータス変更(REQ-006/007)。
+     * 選考ステータス変更(REQ-006/007/011)。
      * 認可・遷移バリデーションは UpdateCandidacyStatusRequest が担う。
-     * ステータス更新と履歴記録は Service 側で1トランザクションで行う。
-     * ※ メール通知(send_notification)の処理はタスク14で本実装する。
+     * ステータス更新・履歴記録・通知レコード作成とメール送信は Service 側で行い、
+     * ここでは送信結果に応じて表示するメッセージを切り替える。
      */
     public function updateStatus(UpdateCandidacyStatusRequest $request, int $id): RedirectResponse
     {
@@ -159,11 +160,22 @@ class CandidacyController extends Controller
 
         $to = CandidacyStatus::from($request->integer('status'));
 
-        $this->service->changeStatus($candidacy, $to, $request->user()->id);
+        $notification = $this->service->changeStatus(
+            $candidacy,
+            $to,
+            $request->user(),
+            $request->boolean('send_notification'),
+        );
+
+        $message = match ($notification->send_status) {
+            NotificationSendStatus::Sent => '選考ステータスを変更しました。応募者に通知メールを送信しました。',
+            NotificationSendStatus::Failed => '選考ステータスを変更しました。ただし、通知メールの送信に失敗しました。応募者への連絡は別途行ってください。',
+            default => '選考ステータスを変更しました。(通知メールは送信していません)',
+        };
 
         return redirect()
             ->route('candidacies.show', $candidacy->id)
-            ->with('status', '選考ステータスを変更しました。');
+            ->with('status', $message);
     }
 
     /**

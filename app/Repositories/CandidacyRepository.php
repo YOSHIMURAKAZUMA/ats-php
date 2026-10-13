@@ -92,7 +92,7 @@ class CandidacyRepository
 
     /**
      * SCR-05(応募者詳細)表示用に、選考を関連ごと1件取得する。
-     * 候補者・対象求人・アサイン面接官・ステータス変更履歴(変更者付き)を eager load。
+     * 候補者・対象求人・アサイン面接官・ステータス変更履歴(変更者・通知付き)を eager load。
      * 存在しない場合は null。
      */
     public function findWithDetail(int $id): ?Candidacy
@@ -102,6 +102,7 @@ class CandidacyRepository
             'jobPosting',
             'interviewers',
             'statusHistories.changedBy',
+            'statusHistories.notification',
         ])->find($id);
     }
 }
