@@ -21,6 +21,14 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * モデルの既定値。
+     * DBの既定値(is_active=true)と揃え、create()直後のモデルでも is_active を正しく参照できるようにする。
+     */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
