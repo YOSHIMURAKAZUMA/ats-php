@@ -6,6 +6,7 @@ use App\Http\Controllers\EntryController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\PublicJobController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -26,8 +27,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/job-postings/{job_posting}/status', [JobPostingController::class, 'updateStatus'])->name('job-postings.updateStatus');
     });
 
-    // 他ロールの仮ルート(タスク9では触れない)
-    Route::get('/users', fn () => 'ユーザー管理画面(仮)')->middleware('role:admin');
+    // ユーザー管理(管理者のみ)REQ-013, 019
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    });
 
     Route::get('/candidacies', [CandidacyController::class, 'index'])->name('candidacies.index')->middleware('role:interviewer,recruiter,admin');
 
