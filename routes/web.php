@@ -6,6 +6,7 @@ use App\Http\Controllers\EntryController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\PublicJobController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -26,8 +27,16 @@ Route::middleware('auth')->group(function () {
         Route::patch('/job-postings/{job_posting}/status', [JobPostingController::class, 'updateStatus'])->name('job-postings.updateStatus');
     });
 
-    // 他ロールの仮ルート(タスク9では触れない)
-    Route::get('/users', fn () => 'ユーザー管理画面(仮)')->middleware('role:admin');
+    // ユーザー管理(管理者のみ)REQ-013, 019
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+        Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
+    });
 
     Route::get('/candidacies', [CandidacyController::class, 'index'])->name('candidacies.index')->middleware('role:interviewer,recruiter,admin');
 

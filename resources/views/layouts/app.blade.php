@@ -9,9 +9,9 @@
   <header>
     <nav>
       <a href="{{ route('job-postings.index') }}">求人票一覧</a>
-      <a href="{{ url('/candidacies') }}">応募者一覧</a>
+      <a href="{{ route('candidacies.index') }}">応募者一覧</a>
       @if (auth()->user()->hasRole(App\Enums\UserRole::Admin))
-        <a href="{{ url('/users') }}">ユーザー管理</a>
+        <a href="{{ route('users.index') }}">ユーザー管理</a>
       @endif
     </nav>
     <div>

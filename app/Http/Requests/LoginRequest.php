@@ -38,19 +38,23 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        if (Auth::user()->primaryRole() === null) {
+        $user = Auth::user();
+
+        // 無効化は管理者が意図して設定した状態のため、役割の有無より先に判定し、本人に正しい理由を伝える(REQ-013)
+        if (! $user->is_active) {
             Auth::logout();
 
-            throw ValidationException::withMessage([
-                'email' => 'このアカウントには役割が設定されていません。管理者にお問い合わせください。',
+            throw ValidationException::withMessages([
+                'email' => 'このアカウントは無効化されています。',
             ]);
         }
 
-        if (! Auth::user()->is_active) {
+        // 役割を1つも持たないユーザーはログイン不可(REQ-019)
+        if ($user->primaryRole() === null) {
             Auth::logout();
 
-            throw ValidationException::withMessage([
-                'email' => 'このアカウントは無効化されています。',
+            throw ValidationException::withMessages([
+                'email' => 'このアカウントには役割が設定されていません。管理者にお問い合わせください。',
             ]);
         }
 

@@ -21,6 +21,14 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * モデルの既定値。
+     * DBの既定値(is_active=true)と揃え、create()直後のモデルでも is_active を正しく参照できるようにする。
+     */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -60,6 +68,18 @@ class User extends Authenticatable
         }
 
         return null;
+    }
+
+    /**
+     * 一覧表示用に、保持している役割の表示名をカンマ区切りで返す(例:「採用担当者, 面接官」)。
+     * 並び順は enum の値の順(管理者→採用担当者→面接官)にそろえる。
+     */
+    public function roleLabels(): string
+    {
+        return $this->roles
+            ->sortBy(fn (UserRole $userRole) => $userRole->role->value)
+            ->map(fn (UserRole $userRole) => $userRole->role->label())
+            ->implode(', ');
     }
 
     public function jobPostings(): HasMany

@@ -35,14 +35,23 @@ class UserSeeder extends Seeder
                 'email' => 'both@example.com',
                 'roles' => [UserRole::Recruiter, UserRole::Interviewer],
             ],
+            [
+                'name' => '無効三郎',
+                'email' => 'inactive@example.com',
+                'roles' => [UserRole::Interviewer],
+                'is_active' => false,
+            ],
         ];
 
         foreach ($accounts as $account) {
-            $user = User::create([
+            $user = new User([
                 'name' => $account['name'],
                 'email' => $account['email'],
                 'password' => Hash::make('password'),
             ]);
+            // is_active は $fillable に含めないため、個別に代入する(既定値は true)
+            $user->is_active = $account['is_active'] ?? true;
+            $user->save();
 
             foreach ($account['roles'] as $role) {
                 $user->roles()->create(['role' => $role]);
