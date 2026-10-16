@@ -27,7 +27,10 @@
           <td>{{ $user->roleLabels() }}</td>
           <td>{{ $user->is_active ? '有効' : '無効' }}</td>
           <td>
-            {{-- 編集(Step 8)・無効化/再有効化(Step 9)をここに追加する --}}
+            @can('update', $user)
+              <a href="{{ route('users.edit', $user) }}">編集</a>
+            @endcan
+            {{-- 無効化/再有効化(Step 9)をここに追加する --}}
           </td>
         </tr>
       @empty

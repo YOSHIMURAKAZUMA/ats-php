@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\UserService;
@@ -48,5 +49,27 @@ class UserController extends Controller
         return redirect()
             ->route('users.index')
             ->with('status', "ユーザー「{$user->name}」を登録しました。");
+    }
+
+    /**
+     * SCR-07 ユーザー編集フォーム(REQ-013, REQ-019)
+     */
+    public function edit(User $user): View
+    {
+        $this->authorize('update', $user);
+
+        return view('users.edit', compact('user'));
+    }
+
+    /**
+     * ユーザーの更新処理(REQ-013, REQ-019)
+     */
+    public function update(UpdateUserRequest $request, User $user): RedirectResponse
+    {
+        $this->service->update($user, $request->validated(), $request->user());
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', "ユーザー「{$user->name}」を更新しました。");
     }
 }
