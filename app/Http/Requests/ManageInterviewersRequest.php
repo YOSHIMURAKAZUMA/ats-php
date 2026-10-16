@@ -12,15 +12,18 @@ use Illuminate\Validation\Validator;
 
 class ManageInterviewersRequest extends FormRequest
 {
+    /** authorize() で取得した対象選考(after() のチェックでも使う) */
+    private ?Candidacy $candidacy = null;
+
     /**
      * 面接官アサインの認可(権限マトリクス:採用担当者・管理者)。
      * CandidacyPolicy@manageInterviewers で判定する。
      */
     public function authorize(): bool
     {
-        $candidacy = Candidacy::find($this->route('id'));
+        $this->candidacy = Candidacy::find($this->route('id'));
 
-        return $candidacy !== null && $this->user()->can('manageInterviewers', $candidacy);
+        return $this->candidacy !== null && $this->user()->can('manageInterviewers', $this->candidacy);
     }
 
     /**
@@ -50,9 +53,11 @@ class ManageInterviewersRequest extends FormRequest
     }
 
     /**
-     * 追加バリデーション:指定された各ユーザーが interviewer ロールを持つこと。
-     * ルールだけでは表現できない「面接官ロールの保有」をここで検証する
-     * (設計書「入力チェック定義」のinterviewer_ids.* 備考)。
+     * 追加バリデーション。
+     * ① 指定された各ユーザーが interviewer ロールを持つこと
+     *    (ルールだけでは表現できないため、設計書「入力チェック定義」の interviewer_ids.* 備考)
+     * ② 新たに追加する面接官が有効なユーザーであること(REQ-013:無効化ユーザー)。
+     *    既にこのラウンドにアサイン済みの面接官は、後から無効化されていてもそのまま残せる。
      */
     public function after(): array
     {
@@ -62,14 +67,36 @@ class ManageInterviewersRequest extends FormRequest
                     return; // 単項目エラーがある時は先に進めない
                 }
 
-                $ids = $this->input('interviewer_ids', []);
+                $ids = array_map('intval', $this->input('interviewer_ids', []));
 
-                $interviewerIds = User::whereIn('id', $ids)->whereHas('roles', fn ($q) => $q->where('role', UserRole::Interviewer))->pluck('id')->all();
+                // ① 面接官ロールの保有
+                $interviewerIds = User::whereIn('id', $ids)
+                    ->whereHas('roles', fn ($q) => $q->where('role', UserRole::Interviewer))
+                    ->pluck('id')
+                    ->all();
 
-                $invalid = array_diff($ids, $interviewerIds);
-
-                if (! empty($invalid)) {
+                if (! empty(array_diff($ids, $interviewerIds))) {
                     $validator->errors()->add('interviewer_ids', '指定されたユーザーの中に面接官でない人が含まれています');
+
+                    return;
+                }
+
+                // ② 新たに追加する面接官が有効であること
+                $alreadyAssignedIds = $this->candidacy->interviewers()
+                    ->wherePivot('round', $this->integer('round'))
+                    ->pluck('users.id')
+                    ->all();
+
+                $inactiveNames = User::whereIn('id', array_diff($ids, $alreadyAssignedIds))
+                    ->where('is_active', false)
+                    ->pluck('name')
+                    ->all();
+
+                if (! empty($inactiveNames)) {
+                    $validator->errors()->add(
+                        'interviewer_ids',
+                        '無効化されたユーザーは面接官に追加できません('.implode('、', $inactiveNames).')'
+                    );
                 }
             },
         ];
