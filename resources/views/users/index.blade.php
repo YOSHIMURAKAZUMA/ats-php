@@ -5,6 +5,10 @@
 @section('content')
   <h1>ユーザー管理</h1>
 
+  @can('create', App\Models\User::class)
+    <p><a href="{{ route('users.create') }}">+ 新規ユーザー登録</a></p>
+  @endcan
+
   <table border="1">
     <thead>
       <tr>

@@ -30,6 +30,8 @@ Route::middleware('auth')->group(function () {
     // ユーザー管理(管理者のみ)REQ-013, 019
     Route::middleware('role:admin')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
     });
 
     Route::get('/candidacies', [CandidacyController::class, 'index'])->name('candidacies.index')->middleware('role:interviewer,recruiter,admin');
