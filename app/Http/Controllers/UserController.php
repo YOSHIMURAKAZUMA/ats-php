@@ -72,4 +72,33 @@ class UserController extends Controller
             ->route('users.index')
             ->with('status', "ユーザー「{$user->name}」を更新しました。");
     }
+
+    /**
+     * ユーザーの無効化処理(REQ-013)
+     * 無効化と同時にログイン中のセッションを削除する(UserService::deactivate)。
+     */
+    public function deactivate(User $user): RedirectResponse
+    {
+        $this->authorize('deactivate', $user);
+
+        $this->service->deactivate($user);
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', "ユーザー「{$user->name}」を無効化しました。");
+    }
+
+    /**
+     * 無効化したユーザーの再有効化処理
+     */
+    public function activate(User $user): RedirectResponse
+    {
+        $this->authorize('activate', $user);
+
+        $this->service->activate($user);
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', "ユーザー「{$user->name}」を再有効化しました。");
+    }
 }

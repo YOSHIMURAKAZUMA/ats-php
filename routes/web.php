@@ -34,6 +34,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+        Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
     });
 
     Route::get('/candidacies', [CandidacyController::class, 'index'])->name('candidacies.index')->middleware('role:interviewer,recruiter,admin');

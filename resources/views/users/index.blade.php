@@ -9,6 +9,10 @@
     <p><a href="{{ route('users.create') }}">+ 新規ユーザー登録</a></p>
   @endcan
 
+  @error('user')
+    <p role="alert">{{ $message }}</p>
+  @enderror
+
   <table border="1">
     <thead>
       <tr>
@@ -30,7 +34,26 @@
             @can('update', $user)
               <a href="{{ route('users.edit', $user) }}">編集</a>
             @endcan
-            {{-- 無効化/再有効化(Step 9)をここに追加する --}}
+
+            @if ($user->is_active)
+              @can('deactivate', $user)
+                <form action="{{ route('users.deactivate', $user) }}" method="POST" style="display:inline"
+                  onsubmit="return confirm(@js("「{$user->name}」を無効化しますか？ログイン中の場合は即時にログアウトされます。"))">
+                  @csrf
+                  @method('PATCH')
+                  <button type="submit">無効化</button>
+                </form>
+              @endcan
+            @else
+              @can('activate', $user)
+                <form action="{{ route('users.activate', $user) }}" method="POST" style="display:inline"
+                  onsubmit="return confirm(@js("「{$user->name}」を再有効化しますか？"))">
+                  @csrf
+                  @method('PATCH')
+                  <button type="submit">再有効化</button>
+                </form>
+              @endcan
+            @endif
           </td>
         </tr>
       @empty
