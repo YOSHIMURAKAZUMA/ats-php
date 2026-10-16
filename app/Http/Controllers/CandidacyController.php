@@ -103,7 +103,7 @@ class CandidacyController extends Controller
             // このラウンドに現在アサインされている面接官
             $assignedInterviewers = $candidacy->interviewers
                 ->filter(fn ($u) => $u->pivot->round === $currentRound)
-                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'isActive' => $u->is_active])
                 ->values()
                 ->all();
 

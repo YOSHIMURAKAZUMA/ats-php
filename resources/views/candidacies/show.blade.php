@@ -186,9 +186,13 @@
           // 選択中の面接官IDの配列(この配列が送信内容の正)
           let selectedIds = assigned.map((u) => u.id);
 
+          // 候補(有効な面接官)→ アサイン済み(無効化された人を含む)の順に名前を探す
           const nameOf = (id) => {
-            const found = candidates.find((u) => u.id === id);
-            return found ? found.name : '(不明なユーザー)';
+            const found = candidates.find((u) => u.id === id) ?? assigned.find((u) => u.id === id);
+            if (!found) {
+              return '(不明なユーザー)';
+            }
+            return found.isActive === false ? `${found.name}(無効)` : found.name;
           };
 
           // chip と hidden input を描画し直す
