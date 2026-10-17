@@ -65,6 +65,10 @@ class LoginTest extends TestCase
 
     /**
      * 未ログインで認証必須ページにアクセスした場合、ログイン後は元のページへ戻る
+     *
+     * 元のページは役割に関係なく優先されるため、役割は1つで確認する。
+     * 初期画面(求人票一覧)と元のページ(応募者一覧)が異なる採用担当者を使い、
+     * intended が効いたことを判別できるようにしている
      */
     public function test_user_is_redirected_to_intended_page_after_login(): void
     {
@@ -81,5 +85,121 @@ class LoginTest extends TestCase
 
         // 採用担当者の初期画面(求人票一覧)ではなく、元のページへ戻る
         $response->assertRedirect(route('candidacies.index'));
+    }
+
+    public function test_user_cannot_login_with_wrong_password(): void
+    {
+        $user = User::factory()->recruiter()->create();
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors([
+            'email' => 'メールアドレスまたはパスワードが正しくありません。',
+        ]);
+        $this->assertGuest();
+    }
+
+    /**
+     * 未登録のメールアドレスでも、パスワード誤りと同じ文言を返す(ユーザー列挙攻撃の対策)
+     */
+    public function test_unregistered_email_shows_same_message_as_wrong_password(): void
+    {
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => 'unregistered@example.com',
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors([
+            'email' => 'メールアドレスまたはパスワードが正しくありません。',
+        ]);
+        $this->assertGuest();
+    }
+
+    /**
+     * 無効化されたユーザーはログインできない(REQ-013)
+     */
+    public function test_inactive_user_cannot_login(): void
+    {
+        $user = User::factory()->interviewer()->inactive()->create();
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors([
+            'email' => 'このアカウントは無効化されています。',
+        ]);
+        $this->assertGuest();
+    }
+
+    /**
+     * 無効かつ役割なしの場合は、無効の文言を優先する(判定順:無効 → 役割なし)
+     */
+    public function test_inactive_message_takes_precedence_over_no_role_message(): void
+    {
+        $user = User::factory()->inactive()->create();
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'email' => 'このアカウントは無効化されています。',
+        ]);
+        $this->assertGuest();
+    }
+
+    /**
+     * 役割を1つも持たないユーザーはログインできない(REQ-019)
+     */
+    public function test_user_without_role_cannot_login(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors([
+            'email' => 'このアカウントには役割が設定されていません。管理者にお問い合わせください。',
+        ]);
+        $this->assertGuest();
+    }
+
+    public function test_email_and_password_are_required(): void
+    {
+        $response = $this->from(route('login'))->post(route('login'), [
+            'email' => '',
+            'password' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['email', 'password']);
+        $this->assertGuest();
+    }
+
+    /**
+     * ログアウト後はログイン画面へ遷移し、認証必須の画面にはアクセスできない(REQ-018)
+     */
+    public function test_user_can_logout(): void
+    {
+        $user = User::factory()->recruiter()->create();
+
+        $response = $this->actingAs($user)->post(route('logout'));
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        $this->get(route('job-postings.index'))
+            ->assertRedirect(route('login'));
     }
 }
