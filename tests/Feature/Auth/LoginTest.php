@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -201,5 +202,114 @@ class LoginTest extends TestCase
 
         $this->get(route('job-postings.index'))
             ->assertRedirect(route('login'));
+    }
+
+    /**
+     * 5回連続で失敗すると、6回目は正しいパスワードでもロックされる(設計書「エラーハンドリング定義」429)
+     */
+    public function test_login_is_locked_after_five_failed_attempts(): void
+    {
+        $user = User::factory()->recruiter()->create();
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->attemptLogin($user->email, 'wrong-password');
+        }
+
+        // 5回目まではロックされず、通常の失敗の文言
+        $this->attemptLogin($user->email, 'wrong-password')
+            ->assertSessionHasErrors(['email' => 'メールアドレスまたはパスワードが正しくありません。']);
+
+        // 6回目は正しいパスワードでもロックされる
+        $response = $this->attemptLogin($user->email, 'password');
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors([
+            'email' => '試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。',
+        ]);
+        $this->assertGuest();
+    }
+
+    public function test_login_is_available_again_after_lockout_expires(): void
+    {
+        $user = User::factory()->recruiter()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->attemptLogin($user->email, 'wrong-password');
+        }
+
+        // ロック時間(60秒)が過ぎるまで時間を進める
+        $this->travel(61)->seconds();
+
+        $this->attemptLogin($user->email, 'password')
+            ->assertRedirect(route('job-postings.index'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_successful_login_resets_failed_attempts(): void
+    {
+        $user = User::factory()->recruiter()->create();
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->attemptLogin($user->email, 'wrong-password');
+        }
+        $this->attemptLogin($user->email, 'password');
+        $this->post(route('logout'));
+
+        // 成功で回数がリセットされていれば、さらに4回失敗してもロックされない(リセットされなければ合計8回)
+        for ($i = 0; $i < 4; $i++) {
+            $this->attemptLogin($user->email, 'wrong-password');
+        }
+
+        $this->attemptLogin($user->email, 'password')
+            ->assertRedirect(route('job-postings.index'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    /**
+     * ロックはメールアドレスとIPアドレスの組ごと。
+     * 他人がそのメールアドレスで失敗を繰り返しても、本人は別のIPからログインできる
+     */
+    public function test_lockout_does_not_affect_other_ip_address(): void
+    {
+        $user = User::factory()->recruiter()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->attemptLogin($user->email, 'wrong-password', '203.0.113.1');
+        }
+
+        $this->attemptLogin($user->email, 'password', '198.51.100.1')
+            ->assertRedirect(route('job-postings.index'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    /**
+     * 大文字・小文字を変えたメールアドレスでも、同じものとして回数を数える
+     */
+    public function test_lockout_ignores_email_case(): void
+    {
+        $user = User::factory()->recruiter()->create(['email' => 'recruiter@example.com']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->attemptLogin('Recruiter@Example.com', 'wrong-password');
+        }
+
+        $this->attemptLogin('recruiter@example.com', 'password')
+            ->assertSessionHasErrors([
+                'email' => '試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。',
+            ]);
+        $this->assertGuest();
+    }
+
+    /**
+     * ログイン画面からのログインを送信する(IPアドレスを指定できる)
+     */
+    private function attemptLogin(string $email, string $password, string $ip = '127.0.0.1'): TestResponse
+    {
+        return $this->from(route('login'))
+            ->withServerVariables(['REMOTE_ADDR' => $ip])
+            ->post(route('login'), [
+                'email' => $email,
+                'password' => $password,
+            ]);
     }
 }
