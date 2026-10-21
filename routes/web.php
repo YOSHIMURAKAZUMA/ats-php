@@ -14,7 +14,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
 });
 
-Route::middleware('auth')->group(function () {
+// 認証必須の画面はブラウザにキャッシュさせない。ログアウト後に「戻る」で再表示されないようにする(REQ-018)
+Route::middleware(['auth', 'cache.headers:no_store;private'])->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     // 求人票管理(採用担当者・管理者)REQ-001, 002, 003
