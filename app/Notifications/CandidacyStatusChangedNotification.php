@@ -38,7 +38,7 @@ class CandidacyStatusChangedNotification extends Notification
         $jobPostingTitle = $this->candidacy->jobPosting->title;
 
         return (new MailMessage)
-            ->subject(" 【選考状況のお知らせ】{$jobPostingTitle}")
+            ->subject("【選考状況のお知らせ】{$jobPostingTitle}")
             ->cc($this->ccEmail)
             ->view(['text' => 'mail.candidacy-status-changed'], [
                 'candidateName' => $this->candidacy->candidate->name,
